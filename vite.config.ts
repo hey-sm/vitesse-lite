@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 
+import os from 'node:os'
 import path from 'node:path'
 import Vue from '@vitejs/plugin-vue'
 import UnoCSS from 'unocss/vite'
@@ -9,11 +10,14 @@ import VueMacros from 'unplugin-vue-macros/vite'
 import { VueRouterAutoImports } from 'unplugin-vue-router'
 import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig } from 'vite'
+import vuetify from 'vite-plugin-vuetify'
 
 export default defineConfig({
   resolve: {
     alias: {
       '~/': `${path.resolve(__dirname, 'src')}/`,
+      '@/': `${path.resolve(__dirname, 'src')}/`,
+
     },
   },
   plugins: [
@@ -59,6 +63,26 @@ export default defineConfig({
     // https://github.com/antfu/unocss
     // see uno.config.ts for config
     UnoCSS(),
+    vuetify({ autoImport: true }),
+
+    {
+      name: 'log-port',
+      configureServer(server) {
+        server.httpServer?.once('listening', () => {
+          const address = server.httpServer?.address()
+          const port = typeof address === 'string' ? address : address?.port
+          const localAddress = `http://localhost:${port}`
+          const networkInterfaces = os.networkInterfaces()
+          const lanAddress = Object.values(networkInterfaces)
+            .flat()
+            .filter(details => details?.family === 'IPv4' && !details.internal)
+            .map(details => `http://${details?.address}:${port}`)[0]
+
+          console.log(`\nServer is running at:\n- Local: ${localAddress}\n- Network: ${lanAddress}\n`)
+        })
+      },
+    },
+
   ],
 
   // https://github.com/vitest-dev/vitest
